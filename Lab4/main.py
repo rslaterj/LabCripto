@@ -1,68 +1,58 @@
-from Crypto.Cipher import DES, AES, DES3
+from Crypto.Cipher import DES, DES3, AES
 from Crypto.Util.Padding import pad
-from base64 import b64encode
-import sys
+import base64
+import string
+import random
 
-BLOCK_SIZES = {
-    'DES': 8,
-    '3DES': 8,
-    'AES': 16
-}
+def ajustar_parametro_random(parametro, longitud):
+    b = parametro.encode('ascii')
+    if len(b) > longitud: return b[:longitud]
+    elif len(b) < longitud:
+        padd = longitud - len(b)
+        chars = string.ascii_letters + string.digits
+        addpadd = ''.join(random.choice(chars) for _ in range(padd))
+        return b + addpadd.encode('ascii')
+    else: return b
 
+def cifrar_des(key, iv, mensaje):
+    des_key = ajustar_parametro_random(key, 8)
+    des_iv = ajustar_parametro_random(iv, 8)
+    print(f"Key: {des_key.decode()}")
+    print(f"IV:  {des_iv.decode()}")
+    cipher = DES.new(des_key, DES.MODE_CBC, des_iv)
+    mensaje_bytes = mensaje.encode('utf-8')
+    mensaje_padded = pad(mensaje_bytes, DES.block_size)
+    return cipher.encrypt(mensaje_padded)
 
-def adjust_key(key, required_length):
-    if len(key) > required_length: return key[:required_length]
-    elif len(key) < required_length: return key.ljust(required_length, b'\0')
-    return key
+def cifrar_3des(key, iv, mensaje):
+    des3_key = ajustar_parametro_random(key, 24)
+    des3_iv = ajustar_parametro_random(iv, 8)
+    print(f"Key: {des3_key.decode()}")
+    print(f"IV:  {des3_iv.decode()}")
+    cipher = DES3.new(des3_key, DES3.MODE_CBC, des3_iv)
+    mensaje_bytes = mensaje.encode('utf-8')
+    mensaje_padded = pad(mensaje_bytes, DES3.block_size)
+    return cipher.encrypt(mensaje_padded)
 
-
-def get_cipher(algorithm, key, iv):
-    if algorithm == 'DES':
-        key = adjust_key(key, 8)
-        print(f"Clave utilizada (DES): {key.hex()}")
-        cipher = DES.new(key, DES.MODE_CBC, iv)
-    elif algorithm == '3DES':
-        key = adjust_key(key, 24)  # 24 is max, compatible with 16 too
-        print(f"Clave utilizada (3DES): {key.hex()}")
-        cipher = DES3.new(key, DES3.MODE_CBC, iv)
-    elif algorithm == 'AES':
-        key = adjust_key(key, 32)
-        print(f"Clave utilizada (AES-256): {key.hex()}")
-        cipher = AES.new(key, AES.MODE_CBC, iv)
-    else:
-        raise ValueError("Algoritmo no soportado.")
-    return cipher
-
-
-def main():
-    print("=== Cifrado con DES, AES-256 y 3DES ===")
-    algorithm = input("Seleccione el algoritmo (DES / 3DES / AES): ").strip().upper()
-
-    key = input("Ingrese la clave (en hexadecimal): ")
-    iv = input("Ingrese el vector de inicialización IV (en hexadecimal): ")
-    plaintext = input("Ingrese el texto plano a cifrar: ")
-
-    try:
-        key_bytes = bytes.fromhex(key)
-        iv_bytes = bytes.fromhex(iv)
-
-        block_size = BLOCK_SIZES.get(algorithm)
-        if not block_size:
-            raise ValueError("Algoritmo no reconocido.")
-
-        cipher = get_cipher(algorithm, key_bytes, iv_bytes)
-        padded_text = pad(plaintext.encode(), block_size)
-        ciphertext = cipher.encrypt(padded_text)
-
-        print(f"Texto cifrado (Base64): {b64encode(ciphertext).decode()}")
-
-    except ValueError as ve:
-        print(f"Error: {ve}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        sys.exit(1)
+def cifrar_aes256(key, iv, mensaje):
+    aes_key = ajustar_parametro_random(key, 32)
+    aes_iv = ajustar_parametro_random(iv, 16)
+    print(f"Key: {aes_key.decode()}")
+    print(f"IV:  {aes_iv.decode()}")
+    cipher = AES.new(aes_key, AES.MODE_CBC, aes_iv)
+    mensaje_bytes = mensaje.encode('utf-8')
+    mensaje_padded = pad(mensaje_bytes, AES.block_size)
+    return cipher.encrypt(mensaje_padded)
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    key = input("Ingresa clave (texto plano): ")
+    iv = input("Ingresa IV (texto plano): ")
+    mensaje = input("Ingresa el mensaje a cifrar: ")
+
+    print("\n--- DES ---")
+    print(f"Ciphertext (base64): {base64.b64encode(cifrar_des(key, iv, mensaje)).decode()}")
+    print("\n--- 3DES ---")
+    print(f"Ciphertext (base64): {base64.b64encode(cifrar_3des(key, iv, mensaje)).decode()}")
+    print("\n--- AES-256 ---")
+    print(f"Ciphertext (base64): {base64.b64encode(cifrar_aes256(key, iv, mensaje)).decode()}")
